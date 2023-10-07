@@ -54,6 +54,9 @@ for i, x in enumerate(ds.take(100)):
     text_str = tf.compat.as_text(text_tensor.numpy())
     print(f'{i} : {text_str}')
 
+import gensim.downloader as api
+wv = api.load('word2vec-google-news-300')
+wv["Tokyo"]
 """
 input_docs = [
     'あなたは犬が',
