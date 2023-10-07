@@ -38,11 +38,26 @@ class SentenceBertJapanese:
         return torch.stack(all_embeddings)
     
 
+print("ベクトル変換用のmodelを生成しています...")
 model = SentenceBertJapanese("sonoisa/sentence-bert-base-ja-mean-tokens-v2")
+print("modelを生成しました")
 
+import tensorflow as tf
+import tensorflow_datasets as tfds
+
+builder = tfds.builder('huggingface:cc100/lang=ja')
+builder.download_and_prepare()
+ds = builder.as_dataset(split='train', shuffle_files=False)
+
+for i, x in enumerate(ds.take(100)):
+    text_tensor = x['text']
+    text_str = tf.compat.as_text(text_tensor.numpy())
+    print(f'{i} : {text_str}')
+
+"""
 input_docs = [
     'あなたは犬が',
     '好き',
 ]
 vecs = model.encode(input_docs, batch_size=12)
-print(vecs)
+print(vecs)"""
