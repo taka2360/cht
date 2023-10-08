@@ -1,47 +1,21 @@
-from transformers import BertJapaneseTokenizer, BertModel
-import torch
-import torch.nn.functional as F
-import pandas as pd
+import pickle
 
 
+from gensim.models.word2vec import Word2Vec
+import gensim
 
-class SentenceBertJapanese:
-    def __init__(self, model_name_or_path, device=None):
-        self.tokenizer = BertJapaneseTokenizer.from_pretrained(model_name_or_path)
-        self.model = BertModel.from_pretrained(model_name_or_path)
-        self.model.eval()
+from janome.tokenizer import Tokenizer
 
-        if device is None:
-            device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.device = torch.device(device)
-        self.model.to(device)
-
-    def _mean_pooling(self, model_output, attention_mask):
-        token_embeddings = model_output[0] #First element of model_output contains all token embeddings
-        input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
-        return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
+t = Tokenizer()
+malist = t.tokenize("私はたかよしです")
+with open('gensim-kvecs.cc.ja.300.vec.pkl', mode='rb') as fp:
+    model = pickle.load(fp)
+for n in malist:
+    vec = model[n.surface]
+    print(model.most_similar( [ vec ], [], 2)[0])
 
 
-    def encode(self, sentences, batch_size=8):
-        all_embeddings = []
-        iterator = range(0, len(sentences), batch_size)
-        for batch_idx in iterator:
-            batch = sentences[batch_idx:batch_idx + batch_size]
-
-            encoded_input = self.tokenizer.batch_encode_plus(batch, padding="longest", truncation=True, return_tensors="pt").to(self.device)
-            model_output = self.model(**encoded_input)
-            sentence_embeddings = self._mean_pooling(model_output, encoded_input["attention_mask"]).to('cpu')
-
-            all_embeddings.extend(sentence_embeddings)
-
-        # return torch.stack(all_embeddings).numpy()
-        return torch.stack(all_embeddings)
-    
-
-print("ベクトル変換用のmodelを生成しています...")
-model = SentenceBertJapanese("sonoisa/sentence-bert-base-ja-mean-tokens-v2")
-print("modelを生成しました")
-
+"""
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
@@ -49,18 +23,7 @@ builder = tfds.builder('huggingface:cc100/lang=ja')
 builder.download_and_prepare()
 ds = builder.as_dataset(split='train', shuffle_files=False)
 
-for i, x in enumerate(ds.take(100)):
+for i, x in enumerate(ds.take(10)):
     text_tensor = x['text']
     text_str = tf.compat.as_text(text_tensor.numpy())
-    print(f'{i} : {text_str}')
-
-import gensim.downloader as api
-wv = api.load('word2vec-google-news-300')
-wv["Tokyo"]
-"""
-input_docs = [
-    'あなたは犬が',
-    '好き',
-]
-vecs = model.encode(input_docs, batch_size=12)
-print(vecs)"""
+    print(f'{i} : {text_str}')"""
