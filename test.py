@@ -1,4 +1,6 @@
+
+from gensim.models.word2vec import Word2Vec
 import gensim
-import gensim.downloader as api
-wv = api.load('word2vec-google-news-300')
-print(wv["Tokyo"])
+
+model = gensim.models.KeyedVectors.load_word2vec_format('cc.ja.300.vec.gz', binary=False)
+print(model)
