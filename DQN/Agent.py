@@ -9,15 +9,10 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-
-RM_CAPACITY = 10000 # ReplayMemoryのサイズ
 NUM_MIDDLE_LAYER = 48 # 中間層のユニット数
 LR = 5e-4 # 学習率
 BATCH_SIZE = 64 # バッチサイズ
 GAMMA = 0.99 # 割引率
-EPS_INI = 1.0 # epsilonの初期値
-EPS_FIN = 1e-3 # epsilonの収束先
-EPS_DIV = 30 # 大きいほどゆっくり減少
 
 device = torch.device("cuda:0")
 print(device)
@@ -25,7 +20,6 @@ print(device)
 class Agent:
     """エージェントクラス"""
     def __init__(self, num_actions, num_states=0):
-        assert num_actions == 2
         self.num_actions = num_actions
         self.num_states = num_states
 
@@ -36,30 +30,20 @@ class Agent:
         # ニューラルネット学習（パラメータ最適化）の設定
         self.optimizer = torch.optim.AdamW(self.main_net.parameters(), lr=LR, amsgrad=True)
         # リプレイメモリー
-        self.memory = ReplayMemory(RM_CAPACITY)
-        self.epsilon = EPS_INI
+        self.memory = ReplayMemory()
 
     def store_transition(self, state, action, s_next, reward):
         self.memory.push(state, action, s_next, reward)
 
-    def select_action(self, state, episode):
-        # epsilon-greedyのepsilonをepisodeと共に減らしていく
-        self.epsilon = EPS_FIN + (EPS_INI - EPS_FIN) * \
-            math.exp(-1. * episode / EPS_DIV)
+    def select_action(self, state):
+        self.main_net.eval()
+        with torch.no_grad():
+            a_idx = self.main_net(state).max(1)[1].view(1, 1)
 
-        if np.random.uniform(0, 1) > self.epsilon: # 学習した方策
-            self.main_net.eval()
-            with torch.no_grad():
-                a_idx = self.main_net(state).max(1)[1].view(1, 1)
-        else: # ランダムに選択
-            a_idx = torch.LongTensor(
-            [[random.randrange(self.num_actions)]])
 
         return a_idx
 
     def update_main_net(self):
-        if len(self.memory) < BATCH_SIZE:
-            return # BATCH_SIZE以上になるまでは学習しない
 
         # メモリーからの取り出し
         transitions = self.memory.sample(BATCH_SIZE)

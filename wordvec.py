@@ -20,17 +20,24 @@ def word_to_vec(text:str, axis:int):
     malist = t.tokenize(text)
     vecs = []
     for i, n in enumerate(malist):
-        if not i:
-            vec = model[n.surface]
-        else:
-            vec = (vec + model[n.surface]) / 2
+        try:
+            if not i:
+                vec = model[n.surface]
+            else:
+                vec = (vec + model[n.surface]) / 2
+        except KeyError:
+            return "notworderror"
     for i in range(axis):
-        vecs.append(np.median(vec[i * int(300 / axis) : (i + 1) * int(300 / axis)]))
+        try:
+            vecs.append(np.median(vec[i * int(300 / axis) : (i + 1) * int(300 / axis)]))
+        except UnboundLocalError:
+            return "notworderror"
     return np.asarray(vecs)
 
 def vec_to_word(vec):
     if len(vec) != 300: raise ValueError("300次元のベクトルを指定してください!")
     return model.most_similar( [ vec ], [], 1)[0]
 
-a = word_to_vec("こんにちは", 300)
-print(vec_to_word(a))
+if __name__ == "__main__":
+    a = word_to_vec("区分け", 300)
+    print(vec_to_word(a))
